@@ -1,7 +1,7 @@
 # enterprise-knowledge-assistant
 An enterprise-grade RAG microservice built with FastAPI, LangChain, Google Gemini, and AstraDB featuring multi-tenant metadata filtering and messy data ingestion pipelines
 
-# 🏢 Enterprise Knowledge Assistant (AI FDE RAG Microservice)
+# 🏢 Enterprise Knowledge Assistant (AI RAG Microservice)
 
 A production-ready Retrieval-Augmented Generation (RAG) microservice designed for enterprise environments. It ingests messy unstructured documents, handles semantic chunking with metadata tagging for secure multi-tenancy, and serves high-accuracy answers via a scalable FastAPI backend.
 
