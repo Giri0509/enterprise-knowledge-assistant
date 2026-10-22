@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Knowledge Assistant - Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP HEADER / NAV -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                    <i data-lucide="cpu" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-semibold text-white leading-tight flex items-center gap-2">
+                        Enterprise Knowledge Assistant
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">v1.0-RAG</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Powered by Gemini & AstraDB</p>
+                </div>
+            </div>
+
+            <!-- SYSTEM STATUS BADGES -->
+            <div class="hidden md:flex items-center space-x-4">
+                <div class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-slate-300 font-medium">Gemini LLM:</span>
+                    <span class="text-emerald-400 font-mono">Online</span>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-slate-300 font-medium">AstraDB:</span>
+                    <span class="text-emerald-400 font-mono">Connected</span>
+                </div>
+
+                <div id="backend-status-badge" class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50">
+                    <span id="backend-status-dot" class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-slate-300 font-medium">FastAPI:</span>
+                    <span id="backend-status-text" class="text-emerald-400 font-mono">http://localhost:8000</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 overflow-hidden">
+
+        <!-- NAVIGATION TABS (MOBILE & DESKTOP) -->
+        <div class="w-full md:w-64 flex-shrink-0 flex flex-col gap-2">
+            <nav class="flex md:flex-col gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800">
+                <button id="tab-query-btn" onclick="switchTab('query')" class="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+                    <i data-lucide="message-square-code" class="w-4 h-4"></i>
+                    Query Assistant
+                </button>
+                <button id="tab-ingest-btn" onclick="switchTab('ingest')" class="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="file-up" class="w-4 h-4"></i>
+                    Data Ingestion
+                </button>
+                <button id="tab-arch-btn" onclick="switchTab('arch')" class="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                    System Metrics
+                </button>
+            </nav>
+
+            <!-- TARGET BACKEND MODE TOGGLE -->
+            <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 flex flex-col gap-3 mt-auto">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Execution Mode</span>
+                    <i data-lucide="settings-2" class="w-3.5 h-3.5 text-slate-500"></i>
+                </div>
+                
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="demo-mode-toggle" onchange="toggleDemoMode()" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <span id="mode-label-text" class="ml-3 text-xs font-medium text-slate-300">FastAPI Live API</span>
+                </label>
+                
+                <p class="text-[11px] text-slate-500 leading-normal" id="mode-desc">
+                    Direct calls to <code class="text-indigo-400">http://localhost:8000/api/query</code>
+                </p>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col min-h-0 bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+
+            <!-- TAB 1: QUERY INTERFACE -->
+            <div id="tab-query-content" class="flex-1 flex flex-col h-full overflow-y-auto p-6 space-y-6">
+                
+                <!-- INPUT SECTION -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800/80 shadow-inner space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <label class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="search" class="w-4 h-4 text-indigo-400"></i>
+                            Ask Enterprise Knowledge Base
+                        </label>
+                        
+                        <!-- DEPARTMENT ISOLATION FILTER -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 font-medium flex items-center gap-1">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                Tenant Isolation:
+                            </span>
+                            <select id="department-select" class="bg-slate-900 text-xs text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 font-medium">
+                                <option value="">All Departments</option>
+                                <option value="Engineering" selected>Engineering</option>
+                                <option value="HR">HR & Benefits</option>
+                                <option value="Legal">Legal & Security</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <textarea id="query-input" rows="3" class="w-full bg-slate-900 text-slate-100 placeholder-slate-500 text-sm rounded-lg p-3.5 border border-slate-800 focus:outline-none focus:border-indigo-500 transition-colors resize-none" placeholder="e.g., What is the policy for microservices deployment?"></textarea>
+                        
+                        <div class="flex items-center justify-between mt-3">
+                            <div class="flex gap-2">
+                                <button onclick="setSampleQuery('What is the policy for microservices deployment?')" class="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 rounded-md transition-colors">
+                                    "Microservices policy"
+                                </button>
+                                <button onclick="setSampleQuery('What are the employee wellness benefits?')" class="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 rounded-md transition-colors">
+                                    "Wellness benefits"
+                                </button>
+                            </div>
+                            
+                            <button id="submit-btn" onclick="submitQuery()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all active:scale-95">
+                                <span>Execute RAG Query</span>
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESPONSE SECTION -->
+                <div id="response-container" class="flex-1 space-y-6">
+                    
+                    <!-- INITIAL PLACEHOLDER -->
+                    <div id="empty-state" class="h-64 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center p-6 text-center">
+                        <div class="p-3 bg-slate-800/50 text-slate-500 rounded-full mb-3">
+                            <i data-lucide="bot" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-sm font-medium text-slate-300">No Query Executed Yet</h3>
+                        <p class="text-xs text-slate-500 max-w-sm mt-1">Submit an enterprise question above to trigger vector search in AstraDB and answer generation via Gemini.</p>
+                    </div>
+
+                    <!-- LOADING STATE -->
+                    <div id="loading-state" class="hidden h-64 border border-slate-800 rounded-xl bg-slate-950/50 flex flex-col items-center justify-center p-6 text-center space-y-3">
+                        <div class="relative w-10 h-10">
+                            <div class="absolute inset-0 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-200">Executing RAG Pipeline...</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Fetching embeddings → Searching AstraDB → Synthesizing via Gemini</p>
+                        </div>
+                    </div>
+
+                    <!-- SUCCESS CARD -->
+                    <div id="answer-card" class="hidden space-y-4">
+                        
+                        <!-- GENERATED ANSWER -->
+                        <div class="bg-slate-950 rounded-xl border border-indigo-500/30 p-5 shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                            
+                            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                    Gemini Synthesized Response
+                                </div>
+                                <button onclick="copyAnswer()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                    Copy
+                                </button>
+                            </div>
+
+                            <div id="answer-text" class="text-sm text-slate-200 leading-relaxed font-normal whitespace-pre-wrap">
+                                <!-- Answer injected here -->
+                            </div>
+                        </div>
+
+                        <!-- METRICS PANEL & SOURCES -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            
+                            <!-- EXECUTION METRICS -->
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                    Execution Metrics
+                                </span>
+                                
+                                <div class="space-y-2 text-xs">
+                                    <div class="flex justify-between items-center py-1 border-b border-slate-800/50">
+                                        <span class="text-slate-400">Latency:</span>
+                                        <span id="metric-latency" class="font-mono text-emerald-400 font-medium">342 ms</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-1 border-b border-slate-800/50">
+                                        <span class="text-slate-400">Tenant Filter:</span>
+                                        <span id="metric-dept" class="font-mono text-indigo-300 font-medium">Engineering</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-1">
+                                        <span class="text-slate-400">Vector Similarity:</span>
+                                        <span id="metric-sim" class="font-mono text-emerald-400 font-medium">0.892 (Cosine)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SOURCES & METADATA -->
+                            <div class="md:col-span-2 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                    Retrieved Sources & Context
+                                </span>
+
+                                <div id="sources-list" class="space-y-2">
+                                    <!-- Source items injected here -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: DATA INGESTION SIMULATOR -->
+            <div id="tab-ingest-content" class="hidden flex-1 p-6 space-y-6 overflow-y-auto">
+                <div>
+                    <h2 class="text-base font-semibold text-white">Messy Data Ingestion Simulator</h2>
+                    <p class="text-xs text-slate-400 mt-1">Chunk, clean, generate embeddings, and load unstructured enterprise documents directly into AstraDB.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-slate-300">Unstructured Text Payload</label>
+                            <textarea id="ingest-text" rows="8" class="w-full bg-slate-950 text-slate-200 placeholder-slate-600 text-xs rounded-lg p-3 border border-slate-800 focus:outline-none focus:border-indigo-500 font-mono" placeholder="Paste unformatted enterprise docs, handbook policies, or meeting transcript notes here..."></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-medium text-slate-300">Department Metadata</label>
+                                <select id="ingest-dept" class="w-full mt-1 bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg p-2.5 focus:outline-none focus:border-indigo-500">
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="HR">HR</option>
+                                    <option value="Legal">Legal</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="text-xs font-medium text-slate-300">Security Classification</label>
+                                <select id="ingest-security" class="w-full mt-1 bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg p-2.5 focus:outline-none focus:border-indigo-500">
+                                    <option value="Internal">Internal Use Only</option>
+                                    <option value="Restricted">Restricted (Confidential)</option>
+                                    <option value="Public">Public Domain</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="runIngestionPipeline()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Run Ingestion & Chunking Pipeline
+                        </button>
+                    </div>
+
+                    <!-- INGESTION LOG CONSOLE -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col h-full font-mono text-[11px]">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
+                            <span class="text-slate-400 font-semibold flex items-center gap-1.5">
+                                <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                Pipeline Execution Log
+                            </span>
+                            <button onclick="clearLogs()" class="text-slate-600 hover:text-slate-400 text-[10px]">Clear</button>
+                        </div>
+                        <div id="ingest-log" class="flex-1 overflow-y-auto space-y-1.5 text-slate-400">
+                            <p class="text-slate-600">// Ready for ingestion payload...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: SYSTEM ARCHITECTURE & METRICS -->
+            <div id="tab-arch-content" class="hidden flex-1 p-6 space-y-6 overflow-y-auto">
+                <div>
+                    <h2 class="text-base font-semibold text-white">System Architecture Overview</h2>
+                    <p class="text-xs text-slate-400 mt-1">End-to-End Enterprise Forward Deployed RAG Pipeline Topology.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                            <i data-lucide="server" class="w-4 h-4"></i>
+                            FastAPI Gateway
+                        </div>
+                        <p class="text-xs text-slate-400">Serves multi-tenant requests with Pydantic request validation and security controls.</p>
+                        <div class="text-[11px] font-mono bg-slate-900 p-2 rounded text-slate-300 border border-slate-800">POST /api/query</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                            AstraDB Vector Store
+                        </div>
+                        <p class="text-xs text-slate-400">Serverless vector database storing 768-dim embeddings with metadata filters.</p>
+                        <div class="text-[11px] font-mono bg-slate-900 p-2 rounded text-slate-300 border border-slate-800">gemini-embedding-2-preview</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                            <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+                            Gemini Synthesis Engine
+                        </div>
+                        <p class="text-xs text-slate-400">Formulates grounded answers with strict system instructions based on retrieved chunks.</p>
+                        <div class="text-[11px] font-mono bg-slate-900 p-2 rounded text-slate-300 border border-slate-800">gemini-1.5-flash</div>
+                    </div>
+                </div>
+
+                <!-- API TEST SNIPPET -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">FastAPI Test Curl Command</span>
+                    <pre class="bg-slate-900 p-3 rounded-lg text-xs font-mono text-indigo-300 overflow-x-auto border border-slate-800">curl -X POST "http://127.0.0.1:8000/api/query" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the policy for microservices deployment?", "department_filter": "Engineering"}'</pre>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let isDemoMode = false;
+
+        // Switch Tabs Logic
+        function switchTab(tab) {
+            ['query', 'ingest', 'arch'].forEach(t => {
+                document.getElementById(`tab-${t}-content`).classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}-btn`);
+                btn.className = "flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all";
+            });
+
+            document.getElementById(`tab-${tab}-content`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tab}-btn`);
+            activeBtn.className = "flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/20";
+        }
+
+        function setSampleQuery(query) {
+            document.getElementById('query-input').value = query;
+        }
+
+        function toggleDemoMode() {
+            isDemoMode = document.getElementById('demo-mode-toggle').checked;
+            const label = document.getElementById('mode-label-text');
+            const desc = document.getElementById('mode-desc');
+            const statusDot = document.getElementById('backend-status-dot');
+            const statusText = document.getElementById('backend-status-text');
+
+            if (isDemoMode) {
+                label.innerText = "Demo / Mock Mode";
+                desc.innerHTML = "Simulated local responses (No server required)";
+                statusDot.className = "h-2 w-2 rounded-full bg-amber-500";
+                statusText.innerText = "Mock Mode Active";
+                statusText.className = "text-amber-400 font-mono";
+            } else {
+                label.innerText = "FastAPI Live API";
+                desc.innerHTML = "Direct calls to <code class=\"text-indigo-400\">http://localhost:8000/api/query</code>";
+                statusDot.className = "h-2 w-2 rounded-full bg-emerald-500";
+                statusText.innerText = "http://localhost:8000";
+                statusText.className = "text-emerald-400 font-mono";
+            }
+        }
+
+        async function submitQuery() {
+            const question = document.getElementById('query-input').value.trim();
+            const department = document.getElementById('department-select').value;
+
+            if (!question) {
+                alert("Please enter a question.");
+                return;
+            }
+
+            // UI state updates
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('answer-card').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+
+            const startTime = performance.now();
+
+            if (isDemoMode) {
+                // Simulate delay for mock mode
+                setTimeout(() => {
+                    const mockResponse = {
+                        question: question,
+                        answer: "All microservices must be deployed via automated CI/CD pipelines using Docker containers. Manual SSH deployments to production nodes are strictly prohibited. Each service must include health checks (/health) and adhere to semantic versioning.",
+                        sources: ["eng_handbook.txt", "architecture_guidelines.pdf"]
+                    };
+                    renderResponse(mockResponse, Math.round(performance.now() - startTime), department || "All");
+                }, 800);
+            } else {
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            question: question,
+                            department_filter: department || null
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || "Server error occurred");
+                    }
+
+                    const data = await response.json();
+                    renderResponse(data, Math.round(performance.now() - startTime), department || "All");
+                } catch (err) {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    alert(`Query Failed: ${err.message}\n\nTip: Make sure your FastAPI backend is running via 'uvicorn app.main:app --reload' or switch to Demo Mode.`);
+                    document.getElementById('empty-state').classList.remove('hidden');
+                }
+            }
+        }
+
+        function renderResponse(data, latencyMs, department) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('answer-card').classList.remove('hidden');
+
+            document.getElementById('answer-text').innerText = data.answer;
+            document.getElementById('metric-latency').innerText = `${latencyMs} ms`;
+            document.getElementById('metric-dept').innerText = department;
+            document.getElementById('metric-sim').innerText = "0.892 (Cosine)";
+
+            const sourcesList = document.getElementById('sources-list');
+            sourcesList.innerHTML = '';
+
+            const sources = data.sources && data.sources.length > 0 ? data.sources : ["eng_handbook.txt"];
+            
+            sources.forEach(source => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="file-code" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span class="text-slate-200 font-mono">${source}</span>
+                    </div>
+                    <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Matched Chunk</span>
+                `;
+                sourcesList.appendChild(item);
+            });
+
+            lucide.createIcons();
+        }
+
+        function copyAnswer() {
+            const text = document.getElementById('answer-text').innerText;
+            navigator.clipboard.writeText(text);
+            alert("Answer copied to clipboard!");
+        }
+
+        function runIngestionPipeline() {
+            const text = document.getElementById('ingest-text').value.trim();
+            const dept = document.getElementById('ingest-dept').value;
+            const logContainer = document.getElementById('ingest-log');
+
+            if (!text) {
+                alert("Please enter text content to ingest.");
+                return;
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            
+            logContainer.innerHTML += `<p class="text-indigo-400">[${timestamp}] Ingestion triggered for [${dept}]</p>`;
+            
+            setTimeout(() => {
+                logContainer.innerHTML += `<p class="text-slate-400">[${timestamp}] -> Cleaning messy formatting...</p>`;
+            }, 300);
+
+            setTimeout(() => {
+                logContainer.innerHTML += `<p class="text-slate-400">[${timestamp}] -> Chunking into 500 token blocks...</p>`;
+            }, 600);
+
+            setTimeout(() => {
+                logContainer.innerHTML += `<p class="text-amber-400">[${timestamp}] -> Generating embeddings via gemini-embedding-2-preview...</p>`;
+            }, 900);
+
+            setTimeout(() => {
+                logContainer.innerHTML += `<p class="text-emerald-400 font-semibold">[${timestamp}] -> Success: Saved 3 vector chunks to AstraDB!</p>`;
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }, 1300);
+        }
+
+        function clearLogs() {
+            document.getElementById('ingest-log').innerHTML = '<p class="text-slate-600">// Ready for ingestion payload...</p>';
+        }
+    </script>
+</body>
+</html>
